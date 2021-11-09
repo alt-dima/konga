@@ -1,69 +1,27 @@
-version: "3"
-
-networks:
- kong-net:
-  driver: bridge
+version: '3'
 
 services:
 
-  #######################################
-  # Postgres: The database used by Kong
-  #######################################
-  kong-database:
-    image: postgres:9.6
-    restart: always
-    networks:
-      - kong-net
-    environment:
-      POSTGRES_USER: kong
-      POSTGRES_DB: kong
-      POSTGRES_PASSWORD: kong
+  konga:
+    image: konga
     ports:
-      - "5432:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "kong"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  #######################################
-  # Kong database migration
-  #######################################
-  kong-migration:
-    image: kong:1.5
-    command: "kong migrations bootstrap"
-    networks:
-      - kong-net
-    restart: on-failure
+      - 1337:1337
+    container_name: konga
     environment:
-      KONG_PG_HOST: kong-database
-      KONG_PG_PASSWORD: kong
-    links:
-      - kong-database
-    depends_on:
-      - kong-database
+      - NODE_ENV=production
+      - KONGA_AUTH_PROVIDER=ldap
+      - KONGA_LDAP_HOST=ldaps://ORG.ldap.okta.com:636
+      - KONGA_LDAP_USER_SEARCH_BASE=ou=users,dc=ORG,dc=okta,dc=com
+      - KONGA_LDAP_GROUP_SEARCH_BASE=ou=groups,dc=ORG,dc=okta,dc=com
+      - KONGA_ADMIN_GROUP_REG=^(konga_admins)$$
+      - KONGA_LDAP_BIND_DN=uid=user@domain.com,dc=ORG,dc=okta,dc=com
+      - KONGA_LDAP_BIND_PASSWORD=pass
+      - KONGA_LDAP_USER_SEARCH_FILTER=(uid={{username}})
+      - KONGA_LDAP_USER_ATTRS=uid,givenName,sn	
+      - KONGA_LDAP_GROUP_SEARCH_FILTER=(uniqueMember={{dn}})
+      - KONGA_LDAP_ATTR_EMAIL=uid
+      - KONGA_KONGS_ARRAYS={"Konga":"https://staging-kong.domain.com","Konga2":"https://productin-kong.domain.com"} 
 
-  #######################################
-  # Kong: The API Gateway
-  #######################################
-  kong:
-    image: kong:1.5
-    restart: always
-    networks:
-      - kong-net
-    environment:
-      KONG_PG_HOST: kong-database
-      KONG_PG_PASSWORD: kong
-      KONG_PROXY_LISTEN: 0.0.0.0:8000
-      KONG_PROXY_LISTEN_SSL: 0.0.0.0:8443
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
-    depends_on:
-      - kong-database
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://kong:8001"]
-      interval: 5s
-      timeout: 2s
-      retries: 15
-    ports:
-      - 8001:8001
-      - 8000:8000
+networks:
+  kong-net:
+    external: false

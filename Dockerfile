@@ -13,12 +13,8 @@ RUN apk upgrade --update \
         /app/.git \
         /app/screenshots \
         /app/test \
-    && adduser -H -S -g "Konga service owner" -D -u 1200 -s /sbin/nologin konga \
-    && mkdir /app/kongadata /app/.tmp \
-    && chown -R 1200:1200 /app/views /app/kongadata /app/.tmp
+    && mkdir /app/.tmp
 
 EXPOSE 1337
-
-VOLUME /app/kongadata
 
 ENTRYPOINT ["/app/start.sh"]
